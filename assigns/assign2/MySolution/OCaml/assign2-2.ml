@@ -1,6 +1,4 @@
 #use "./../../assign2.ml";;
-#use "./assign2-1.ml";;
-
 
 let rec mylist_length(xs:'a mylist): int = 
   match xs with
