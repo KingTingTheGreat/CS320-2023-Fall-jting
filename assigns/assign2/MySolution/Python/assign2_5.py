@@ -7,10 +7,10 @@ def fnlist_make_fwork(fwork) -> fnlist:
     res:fnlist = fnlist_nil()
     # define internal work function
     def work(x0):
-        nonlocal res
+        nonlocal res  # prevent local variable reference before assignment error
         # append to result
         res = fnlist_cons(x0, res)
     # call the above defined work function
-    fwork(work)
+    fwork(work=work)
     # return reversed result
     return fnlist_reverse(res)
