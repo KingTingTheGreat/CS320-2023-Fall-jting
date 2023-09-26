@@ -13,6 +13,7 @@ let rec mylist_length(xs:'a mylist): int =
   |MyAppend2(xs1, xs2) -> mylist_length(xs1) + mylist_length(xs2)
 
 
+(*
 (* tail recursive implementation of mylist_length *)
 let mylist_length_tail(xs: 'a mylist): int = 
   let rec tail_rec(xs:'a mylist)(acc:int): int = 
@@ -27,3 +28,4 @@ let mylist_length_tail(xs: 'a mylist): int =
     (* only add accumulator to one of the recurisve calls *)
     |MyAppend2(xs1, xs2) -> (tail_rec xs1 acc) + (tail_rec xs2 0)
   in tail_rec xs 0
+*)
