@@ -34,7 +34,7 @@
 # i1 < n1
 # then (
 # if
-# i2 < n2
+# i2 < n2      
 # then
 #   let c1 = string_get_at(cs1)(i1)
 #   and c2 = string_get_at(cs2)(i2) in
