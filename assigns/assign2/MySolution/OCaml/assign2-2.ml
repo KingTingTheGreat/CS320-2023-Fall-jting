@@ -26,7 +26,7 @@ let rec mylist_get_at(xs:'a mylist)(i0:int): 'a =
     |MySnoc(xs, x1) -> 
       (* recurse if index in the first section *)
       let len2 = mylist_length(xs) in 
-      if len2 < i0 then mylist_get_at(xs)(i0) 
+      if i0 < len2 then mylist_get_at(xs)(i0) 
       (* return last element if it's at the index we're looking for *)
       else if len2 = i0 then x1 
       (* raise exception if out of bounds *)
