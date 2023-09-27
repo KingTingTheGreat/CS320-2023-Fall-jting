@@ -8,6 +8,7 @@ def string_length(cs:str) -> int:
     return len(cs)   
 
 def string_get_at(cs:str, i:int) -> str:
+    """ returns the character at index i in string cs """
     assert (i < len(cs)) if i >= 0 else ((-1*i) <= len(cs))
     return cs[i]
 
