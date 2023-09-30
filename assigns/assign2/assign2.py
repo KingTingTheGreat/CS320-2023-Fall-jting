@@ -3,7 +3,7 @@
 # //
 # DUE: the 27th of September, 2023
 # //
-# Total: 80 point
+# Total: 80 points
 # (OCaml: 40 points)(Python: 40 points)
 ########################################################################
 # Higher-order programming in Python
@@ -34,7 +34,7 @@
 # i1 < n1
 # then (
 # if
-# i2 < n2      
+# i2 < n2
 # then
 #   let c1 = string_get_at(cs1)(i1)
 #   and c2 = string_get_at(cs2)(i2) in
