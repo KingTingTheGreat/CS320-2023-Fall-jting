@@ -20,4 +20,4 @@ let list_last(xs: 'a list): 'a =
     |() -> if last = () then raise Empty else last 
     |_ -> if last = () then x0 else last)
   (** incorrect usage of unit, "()" **)
-  (** i believe this algorithm is simply incorrect **)
+  (** should compare the output of of list_foldright xs (()) fun, not the inputs of fun **)
