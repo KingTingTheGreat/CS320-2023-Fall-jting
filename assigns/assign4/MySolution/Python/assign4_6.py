@@ -1,5 +1,3 @@
-from time import perf_counter
-
 # def cubedRoot(num: int) -> int:
 #     """ returns cubed root of num or None if no such int exists """
 #     n = 0
