@@ -52,14 +52,14 @@ def theNatPairs_cubesum():
         total += 1
 
 
-from time import perf_counter
-ct = 0
-s = perf_counter()
-for i, j in theNatPairs_cubesum():
-    if (i**3)+(j**3) < 1000000:
-        ct += 1
-    else:
-        break
-e = perf_counter()
-print(ct)
-print(e-s)
+# from time import perf_counter
+# ct = 0
+# s = perf_counter()
+# for i, j in theNatPairs_cubesum():
+#     if (i**3)+(j**3) < 1000000:
+#         ct += 1
+#     else:
+#         break
+# e = perf_counter()
+# print(ct)
+# print(e-s)
