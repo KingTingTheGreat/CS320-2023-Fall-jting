@@ -5,8 +5,8 @@ def getCubes():
         yield(n, n**3)
         n += 1
         
-cubes = {}
-# cubes = {}  # hashtable to prevent recalculating the same result
+
+cubes = {}  # hashtable to prevent recalculating the same result
 def cubedRoot(x):
     """ returns cubed root of num or None if no such int exists """
     root = cubes.get(x, -1)  # -1 allows us to store None in the table
@@ -18,23 +18,39 @@ def cubedRoot(x):
     cubes[x] = root
     return root
 
+# def theNatPairs_cubesum():
+#     """ enuermates all pairs of natural numbers """
+#     total = 0
+#     while True:
+#         # try all i up until (i+i > total) since i <= j
+#         i_gen = getCubes()
+#         root_i, i = next(i_gen)
+#         while i + i <= total:
+#             # for a given i, there is only one possible j
+#             j = total - i
+#             j = cubedRoot(j)
+#             # j = cubes.get(j, None)
+#             if j is not None:
+#                 yield (root_i, j)
+#             root_i, i = next(i_gen)
+#         total += 1
+
 def theNatPairs_cubesum():
     """ enuermates all pairs of natural numbers """
     total = 0
     while True:
         # try all i up until (i+i > total) since i <= j
-        i_gen = getCubes()
-        root_i, i = next(i_gen)
-        while i + i <= total:
+        i = 0
+        cube_i = i ** 3
+        while cube_i * 2 <= total:
             # for a given i, there is only one possible j
-            j = total - i
-            if i > j:
-                break
+            j = total - cube_i
             j = cubedRoot(j)
             # j = cubes.get(j, None)
             if j is not None:
-                yield (root_i, j)
-            root_i, i = next(i_gen)
+                yield (i, j)
+            i += 1
+            cube_i = i ** 3
         total += 1
 
 # from time import perf_counter
