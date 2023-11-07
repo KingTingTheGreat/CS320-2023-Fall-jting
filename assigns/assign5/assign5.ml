@@ -1,4 +1,4 @@
-#use "./../../../../classlib/OCaml/MyOCaml.ml";;
+#use "./../../../classlib/OCaml/MyOCaml.ml";;
 (*
 
 Grammar (<expr> is the start symbol)
@@ -46,4 +46,4 @@ let rec trim cs =
    parse "((mul 1 2)" = None
 
 *)
-let parse (s : string) : expr option = (* YOUR CODE *)
+(* let parse (s : string) : expr option = (* YOUR CODE *)*)
