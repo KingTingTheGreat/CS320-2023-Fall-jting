@@ -7,7 +7,6 @@ let test1 = sexpr_to_string(SAdd [SInt 1; SInt 2; SInt 3])
 let () = assert(test1 = "(add 1 2 3)")
 let () = assert (sexpr_parse(test1) = Some (SAdd [SInt 1; SInt 2; SInt 3]))
 
-
 let test2 = sexpr_to_string(SMul [SAdd [SInt 1; SInt 2]; SInt 3; SMul [SInt 1]])
 let () = assert(test2 = "(mul (add 1 2) 3 (mul 1))")
 let () = assert(sexpr_parse(test2) = Some (SMul [SAdd [SInt 1; SInt 2]; SInt 3; SMul [SInt 1]]))
