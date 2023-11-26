@@ -11,10 +11,6 @@ Notes:
 2. You may NOT use OCaml standard library functions directly.
 
 *)
-
-let (^) = string_append;;
-
-
 (* type digit = 
    | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;;
 
@@ -24,11 +20,27 @@ type bool =
 type const = 
 int | bool | Unit;; *)
 
+let (^) = string_append;;
 
-type stackTypes = 
-   |Int of int
-   |Bool of bool
-   |Unit
+type constant = 
+   |Int of int 
+   |Bool of bool 
+   |Unit 
+;;
+
+type com = 
+   |Push of constant
+   |Pop
+   |Trace
+   |Add 
+   |Sub 
+   |Mul
+   |Div
+   |And 
+   |Or 
+   |Not 
+   |Lt 
+   |Gt
 ;;
 
 let rec intToString(x: int): string =
@@ -37,7 +49,7 @@ let rec intToString(x: int): string =
    else (intToString (x / 10)) ^ (intToString (x mod 10))
 ;;
 
-let toString x: string = 
+let toString(x: constant): string = 
    match x with
    |Unit -> "Unit"
    |Bool b -> if b then "True" else "False"
@@ -121,7 +133,129 @@ let nott stack =
    |a :: stack ->
       not(getBool a)
 
+let lt stack = 
+   match stack with 
+   |[] -> failwith "Panic"
+   |i :: stack -> 
+      match stack with
+      |[] -> failwith "Panic"
+      |j :: stack ->
+         (getInt i) < (getInt j)
+;;
+
+let gt stack = 
+   match stack with 
+   |[] -> failwith "Panic"
+   |i :: stack -> 
+      match stack with
+      |[] -> failwith "Panic"
+      |j :: stack ->
+         (getInt i) > (getInt j)       
+;;
+
+
+let rec parse_constant () : constant parser = 
+   parse_int ()
+   (* parse_int () <|> parse_bool ()  *)
+
+   and parse_int () : constant parser =
+      let* n = natural in
+      pure (Int n) << whitespaces
+   
+   (* and parse_bool () : constant parse = *)
+
+
+
+let rec parse_com () : com parser =
+   parse_push () <|> parse_pop () <|> parse_trace () <|> 
+   parse_add () <|> parse_sub () <|> parse_mul () <|> 
+   parse_div () <|> parse_and () <|> parse_or () <|> 
+   parse_not () <|> parse_lt () <|> parse_gt()
+
+(* and parse_int () : com parser =
+   let* n = natural in
+   pure (Int n) << whitespaces *)
+
+and parse_push () : com parser =
+   let* _ = keyword "Push" in
+   let* es = parse_constant () in
+   let* _ = keyword ";" in
+   pure (Push es)
+
+and parse_pop () : com parser =
+   let* _ = keyword "Pop" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (Pop)
+
+and parse_trace () : com parser =
+   let* _ = keyword "Trace" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (Trace)
+
+and parse_add () : com parser =
+   let* _ = keyword "Add" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (Add)
+
+and parse_sub () : com parser =
+   let* _ = keyword "Sub" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (Sub)
+
+and parse_mul () : com parser =
+   let* _ = keyword "Mul" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (Mul)
+
+and parse_div () : com parser =
+   let* _ = keyword "Div" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (Div)
+
+and parse_and () : com parser =
+   let* _ = keyword "And" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (And)
+
+and parse_or () : com parser =
+   let* _ = keyword "Or" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (Or)
+
+and parse_not () : com parser =
+   let* _ = keyword "Not" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (Not)
+
+and parse_lt () : com parser =
+   let* _ = keyword "Lt" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (Lt)
+
+and parse_gt () : com parser =
+   let* _ = keyword "Gt" in
+   let* es = many1' parse_com in
+   let* _ = keyword ";" in
+   pure (Gt)
+
+
 let interp (s : string) : string list option = (* YOUR CODE *)
-   if s = "" then None 
-   else Some(["success"])
+   let stack = [] in 
+   let trace = [] in
+   try string_parse (parse_com ()) s with
+   |Some(e, []) -> Some e 
+   |_ -> "Panic" :: trace 
+
+   (* if s = "" then None 
+   else Some(["success"]) *)
 ;
