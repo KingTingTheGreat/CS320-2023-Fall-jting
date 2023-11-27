@@ -72,7 +72,7 @@ let nott(a: bool): bool =
 
 (* parse constants *)
 let rec parse_constant () : constant parser = 
-   parse_pos () <|> parse_neg () <|> parse_true () <|> parse_false ()
+   parse_pos () <|> parse_neg () <|> parse_true () <|> parse_false () <|> parse_unit ()
 
    and parse_pos () : constant parser =
       let* n = natural in
@@ -90,6 +90,10 @@ let rec parse_constant () : constant parser =
    and parse_false () : constant parser = 
       let* _ = keyword "False" in 
       pure (Bool false) << whitespaces
+
+   and parse_unit () : constant parser = 
+      let* _ = keyword "Unit" in 
+      pure (Unit) << whitespaces
    
 
 
@@ -206,8 +210,8 @@ let rec parse_input(s: string): com list option =
 
 let rec compute(coms: com list)(stack: constant list)(trace: string list): string list = 
    match coms with 
-   |[] -> trace
-   |com::coms ->
+   |[] -> trace (* base case *)
+   |com::coms -> (* recursive case; more coms to process *)
       match com with 
       |Push c -> compute coms (c::stack) trace
       |Pop -> 
@@ -307,7 +311,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
          |_ -> "Panic"::trace)
 ;;
 
-let interp (s : string)  = (* YOUR CODE *)
+let interp (s : string) : string list option  = (* YOUR CODE *)
    (*
    parse input to create a list of commands; return None if parsing fails
    otherwise, perform the commands   
