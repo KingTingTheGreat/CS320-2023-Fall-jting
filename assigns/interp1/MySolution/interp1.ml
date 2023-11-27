@@ -155,14 +155,27 @@ let gt stack =
 
 
 let rec parse_constant () : constant parser = 
-   parse_int ()
-   (* parse_int () <|> parse_bool ()  *)
+   parse_pos () <|> parse_neg () <|> parse_true () <|> parse_false ()
 
-   and parse_int () : constant parser =
+   and parse_pos () : constant parser =
       let* n = natural in
       pure (Int n) << whitespaces
+
+   and parse_neg () : constant parser = 
+      let* _ = keyword "-" in 
+      let*n = natural in 
+      pure (Int (-1 * n)) << whitespaces
+
+   and parse_true () : constant parser =
+      let* _ = keyword "True" in
+      let* _ = keyword ";" in
+      pure (Bool true) << whitespaces
    
-   (* and parse_bool () : constant parse = *)
+   and parse_false () : constant parser = 
+      let* _ = keyword "False" in 
+      let* _ = keyword ";" in 
+      pure (Bool false) << whitespaces
+   
 
 
 
@@ -172,89 +185,88 @@ let rec parse_com () : com parser =
    parse_div () <|> parse_and () <|> parse_or () <|> 
    parse_not () <|> parse_lt () <|> parse_gt()
 
-(* and parse_int () : com parser =
-   let* n = natural in
-   pure (Int n) << whitespaces *)
+   and parse_push () : com parser =
+      let* _ = keyword "Push" in
+      let* es = parse_constant () in
+      let* _ = keyword ";" in
+      pure (Push es)
 
-and parse_push () : com parser =
-   let* _ = keyword "Push" in
-   let* es = parse_constant () in
-   let* _ = keyword ";" in
-   pure (Push es)
+   and parse_pop () : com parser =
+      let* _ = keyword "Pop" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (Pop)
 
-and parse_pop () : com parser =
-   let* _ = keyword "Pop" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (Pop)
+   and parse_trace () : com parser =
+      let* _ = keyword "Trace" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (Trace)
 
-and parse_trace () : com parser =
-   let* _ = keyword "Trace" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (Trace)
+   and parse_add () : com parser =
+      let* _ = keyword "Add" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (Add)
 
-and parse_add () : com parser =
-   let* _ = keyword "Add" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (Add)
+   and parse_sub () : com parser =
+      let* _ = keyword "Sub" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (Sub)
 
-and parse_sub () : com parser =
-   let* _ = keyword "Sub" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (Sub)
+   and parse_mul () : com parser =
+      let* _ = keyword "Mul" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (Mul)
 
-and parse_mul () : com parser =
-   let* _ = keyword "Mul" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (Mul)
+   and parse_div () : com parser =
+      let* _ = keyword "Div" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (Div)
 
-and parse_div () : com parser =
-   let* _ = keyword "Div" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (Div)
+   and parse_and () : com parser =
+      let* _ = keyword "And" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (And)
 
-and parse_and () : com parser =
-   let* _ = keyword "And" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (And)
+   and parse_or () : com parser =
+      let* _ = keyword "Or" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (Or)
 
-and parse_or () : com parser =
-   let* _ = keyword "Or" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (Or)
+   and parse_not () : com parser =
+      let* _ = keyword "Not" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (Not)
 
-and parse_not () : com parser =
-   let* _ = keyword "Not" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (Not)
+   and parse_lt () : com parser =
+      let* _ = keyword "Lt" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (Lt)
 
-and parse_lt () : com parser =
-   let* _ = keyword "Lt" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (Lt)
-
-and parse_gt () : com parser =
-   let* _ = keyword "Gt" in
-   let* es = many1' parse_com in
-   let* _ = keyword ";" in
-   pure (Gt)
+   and parse_gt () : com parser =
+      let* _ = keyword "Gt" in
+      let* es = many1' parse_com in
+      let* _ = keyword ";" in
+      pure (Gt)
 
 
-let interp (s : string) : string list option = (* YOUR CODE *)
-   let stack = [] in 
-   let trace = [] in
-   try string_parse (parse_com ()) s with
+let interp (s : string)  = (* YOUR CODE *)
+   (* let stack = [] in 
+   let trace = [] in *)
+   (* try string_parse (parse_com ()) s with
    |Some(e, []) -> Some e 
-   |_ -> "Panic" :: trace 
+   |_ -> "Panic" :: trace  *)
+   match string_parse (parse_com ()) s with 
+   |Some(e, []) -> Some e 
+   |_ -> None
 
    (* if s = "" then None 
    else Some(["success"]) *)
