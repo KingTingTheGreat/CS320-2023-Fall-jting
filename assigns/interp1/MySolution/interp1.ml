@@ -11,17 +11,8 @@ Notes:
 2. You may NOT use OCaml standard library functions directly.
 
 *)
-(* type digit = 
-   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;;
 
-type bool = 
-   True | False;;
-
-type const = 
-int | bool | Unit;; *)
-
-let (^) = string_append;;
-
+(* defining types *)
 type constant = 
    |Int of int 
    |Bool of bool 
@@ -43,12 +34,14 @@ type com =
    |Gt
 ;;
 
+(* returns string representation of an integer *)
 let rec intToString(x: int): string =
-   if x < 0 then "-" ^ (intToString (x * -1))
+   if x < 0 then string_append "-" (intToString (x * -1))
    else if x < 10 then str (char_of_digit x)
-   else (intToString (x / 10)) ^ (intToString (x mod 10))
+   else string_append (intToString (x / 10)) (intToString (x mod 10))
 ;;
 
+(* returns string presentations of a constant *)
 let toString(x: constant): string = 
    match x with
    |Unit -> "Unit"
@@ -56,103 +49,7 @@ let toString(x: constant): string =
    |Int i -> intToString i 
 ;;
 
-(* let getInt i: int = 
-   match i with 
-   |Int i -> i 
-   |_ -> failwith "Panic"
-
-let add stack = 
-   match stack with 
-   |[] -> failwith "Panic"
-   |i :: stack -> 
-      match stack with
-      |[] -> failwith "Panic"
-      |j :: stack ->
-         (getInt i) + (getInt j)
-;;
-
-let sub stack = 
-   match stack with 
-   |[] -> failwith "Panic"
-   |i :: stack -> 
-      match stack with
-      |[] -> failwith "Panic"
-      |j :: stack ->
-         (getInt i) - (getInt j)
-;;
-
-let mul stack = 
-   match stack with 
-   |[] -> failwith "Panic"
-   |i :: stack -> 
-      match stack with
-      |[] -> failwith "Panic"
-      |j :: stack ->
-         (getInt i) * (getInt j)
-;;
-
-let div stack = 
-   match stack with 
-   |[] -> failwith "Panic"
-   |i :: stack -> 
-      match stack with
-      |[] -> failwith "Panic"
-      |j :: stack ->
-         if (getInt j) = 0 then failwith "Panic" 
-         else (getInt i) / (getInt j)
-;;
-
-let getBool b = 
-   match b with 
-   |Bool b -> b 
-   |_ -> failwith "Panic"
-
-let andd stack = 
-   match stack with 
-   |[] -> failwith "Panic"
-   |a :: stack -> 
-      match stack with
-      |[] -> failwith "Panic"
-      |b :: stack ->
-         (getBool a) && (getBool b)
-;;
-
-let orr stack = 
-   match stack with 
-   |[] -> failwith "Panic"
-   |a :: stack -> 
-      match stack with
-      |[] -> failwith "Panic"
-      |b :: stack ->
-         (getBool a) || (getBool b)
-;;
-
-let nott stack = 
-   match stack with 
-   |[] -> failwith "Panic"
-   |a :: stack ->
-      not(getBool a)
-
-let lt stack = 
-   match stack with 
-   |[] -> failwith "Panic"
-   |i :: stack -> 
-      match stack with
-      |[] -> failwith "Panic"
-      |j :: stack ->
-         (getInt i) < (getInt j)
-;;
-
-let gt stack = 
-   match stack with 
-   |[] -> failwith "Panic"
-   |i :: stack -> 
-      match stack with
-      |[] -> failwith "Panic"
-      |j :: stack ->
-         (getInt i) > (getInt j)       
-;; *)
-
+(* defining boolean operators *)
 let andd(a: bool)(b: bool): bool = 
    if a then 
       if b then true 
@@ -173,6 +70,7 @@ let nott(a: bool): bool =
 ;;
 
 
+(* parse constants *)
 let rec parse_constant () : constant parser = 
    parse_pos () <|> parse_neg () <|> parse_true () <|> parse_false ()
 
@@ -195,7 +93,7 @@ let rec parse_constant () : constant parser =
    
 
 
-
+(* parse coms *)
 let rec parse_com () : com parser =
    parse_push () <|> parse_pop () <|> parse_trace () <|> 
    parse_add () <|> parse_sub () <|> parse_mul () <|> 
@@ -293,22 +191,20 @@ let trim_string(cs: string): string =
 
 
 let rec parse_input(s: string): com list option = 
+   (* remove leading whitespace *)
    let s = trim_string s in 
    if s = "" then Some([]) else
    match string_parse(parse_com ()) s with 
    |None -> None
    |Some(e, []) -> Some([e])
-   |Some(e, rest) -> 
+   |Some(e, rest) -> (* recurse to the next command *)
       let res = parse_input(list_foldleft(rest)("")(fun acc c -> string_snoc acc c)) in 
       match res with 
       |Some(r) -> Some(e::r)
       |None -> None
-   (* |Some(e, rest) -> Some (e :: (parse_com () rest)) *)
-   (* |_ -> None *)
 ;;
 
 let rec compute(coms: com list)(stack: constant list)(trace: string list): string list = 
-   (* ["good job"] *)
    match coms with 
    |[] -> trace
    |com::coms ->
@@ -358,7 +254,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> if j = 0 then "Panic"::trace else compute coms (Int(i/j)::stack) trace 
+               |Int j -> if j = 0 then ("Panic"::trace) else (compute coms (Int(i/j)::stack) trace) 
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -382,6 +278,13 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
+      |Not ->
+         (match stack with 
+         |a::stack -> 
+            (match a with 
+            |Bool a -> compute coms (Bool(nott a)::stack) trace
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
       |Lt ->
          (match stack with 
          |i::j::stack -> 
@@ -402,28 +305,16 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
-      |Not ->
-         (match stack with 
-         |a::stack -> 
-            (match a with 
-            |Bool a -> compute coms (Bool(nott a)::stack) trace
-            |_ -> "Panic"::trace)
-         |_ -> "Panic"::trace)
 ;;
 
 let interp (s : string)  = (* YOUR CODE *)
-   (* let stack = [] in  *)
-   (* let trace = [] in *)
-   (* try string_parse (parse_com ()) s with
-   |Some(e, []) -> Some e 
-   |_ -> "Panic" :: trace  *)
+   (*
+   parse input to create a list of commands; return None if parsing fails
+   otherwise, perform the commands   
+   *)
    match parse_input(s) with 
    |None -> None 
    |Some(coms) -> 
       Some(compute(coms)([])([]))
 ;;
-
-   (* 
-   fold left on stack   
-   *)
 
