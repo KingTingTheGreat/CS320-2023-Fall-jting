@@ -56,7 +56,7 @@ let toString(x: constant): string =
    |Int i -> intToString i 
 ;;
 
-let getInt i: int = 
+(* let getInt i: int = 
    match i with 
    |Int i -> i 
    |_ -> failwith "Panic"
@@ -151,7 +151,7 @@ let gt stack =
       |[] -> failwith "Panic"
       |j :: stack ->
          (getInt i) > (getInt j)       
-;;
+;; *)
 
 
 let rec parse_constant () : constant parser = 
@@ -288,16 +288,123 @@ let rec parse_input(s: string): com list option =
    (* |_ -> None *)
 ;;
 
+let rec compute(coms: com list)(stack: constant list)(trace: string list): string list = 
+   (* ["good job"] *)
+   match coms with 
+   |[] -> trace
+   |com::coms ->
+      match com with 
+      |Push c -> compute coms (c::stack) trace
+      |Pop -> 
+         (match stack with 
+         |c::stack -> compute coms stack trace
+         |_ -> "Panic"::trace)
+      |Trace ->
+         (match stack with
+         |c::stack -> compute coms (Unit::stack) (toString(c)::trace)
+         |_ -> "Panic"::trace)
+      |Add ->
+         (match stack with 
+         |i::j::stack -> 
+            (match i with 
+            |Int i -> 
+               (match j with 
+               |Int j -> compute coms (Int(i+j)::stack) trace 
+               |_ -> "Panic"::trace) 
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
+      |Sub ->
+         (match stack with 
+         |i::j::stack -> 
+            (match i with 
+            |Int i -> 
+               (match j with 
+               |Int j -> compute coms (Int(i-j)::stack) trace 
+               |_ -> "Panic"::trace) 
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
+      |Mul ->
+         (match stack with 
+         |i::j::stack -> 
+            (match i with 
+            |Int i -> 
+               (match j with 
+               |Int j -> compute coms (Int(i*j)::stack) trace 
+               |_ -> "Panic"::trace) 
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
+      |Div ->
+         (match stack with 
+         |i::j::stack -> 
+            (match i with 
+            |Int i -> 
+               (match j with 
+               |Int j -> if j = 0 then "Panic"::trace else compute coms (Int(i/j)::stack) trace 
+               |_ -> "Panic"::trace) 
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
+      |And ->
+         (match stack with 
+         |a::b::stack -> 
+            (match a with 
+            |Bool a -> 
+               (match b with 
+               |Bool b -> compute coms (Bool(a&&b)::stack) trace 
+               |_ -> "Panic"::trace) 
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
+      |Or ->
+         (match stack with 
+         |a::b::stack -> 
+            (match a with 
+            |Bool a -> 
+               (match b with 
+               |Bool b -> compute coms (Bool(a||b)::stack) trace 
+               |_ -> "Panic"::trace) 
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
+      |Lt ->
+         (match stack with 
+         |i::j::stack -> 
+            (match i with 
+            |Int i -> 
+               (match j with 
+               |Int j -> compute coms (Bool(i<j)::stack) trace 
+               |_ -> "Panic"::trace) 
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
+      |Gt ->
+         (match stack with 
+         |i::j::stack -> 
+            (match i with 
+            |Int i -> 
+               (match j with 
+               |Int j -> compute coms (Bool(i>j)::stack) trace 
+               |_ -> "Panic"::trace) 
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
+      |Not ->
+         (match stack with 
+         |a::stack -> 
+            (match a with 
+            |Bool a -> compute coms (Bool(not a)::stack) trace
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
+;;
+
 let interp (s : string)  = (* YOUR CODE *)
    (* let stack = [] in  *)
    (* let trace = [] in *)
    (* try string_parse (parse_com ()) s with
    |Some(e, []) -> Some e 
    |_ -> "Panic" :: trace  *)
-   parse_input(s)
-
+   match parse_input(s) with 
+   |None -> None 
+   |Some(coms) -> 
+      Some(compute(coms)([])([]))
+;;
 
    (* 
    fold left on stack   
    *)
-;
+
