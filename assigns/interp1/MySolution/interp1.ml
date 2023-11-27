@@ -273,14 +273,19 @@ let trim_string(cs: string): string =
 ;;
 
 
-let rec parse_input(s: string): com list = 
+let rec parse_input(s: string): com list option = 
    let s = trim_string s in 
-   if s = "" then [] else
+   if s = "" then Some([]) else
    match string_parse(parse_com ()) s with 
-   |Some(e, []) -> [e]
-   |Some(e, rest) -> e::parse_input(list_foldleft(rest)("")(fun acc c -> string_snoc acc c))
+   |None -> None
+   |Some(e, []) -> Some([e])
+   |Some(e, rest) -> 
+      let res = parse_input(list_foldleft(rest)("")(fun acc c -> string_snoc acc c)) in 
+      match res with 
+      |Some(r) -> Some(e::r)
+      |None -> None
    (* |Some(e, rest) -> Some (e :: (parse_com () rest)) *)
-   |_ -> failwith "None"
+   (* |_ -> None *)
 ;;
 
 let interp (s : string)  = (* YOUR CODE *)
@@ -289,7 +294,7 @@ let interp (s : string)  = (* YOUR CODE *)
    (* try string_parse (parse_com ()) s with
    |Some(e, []) -> Some e 
    |_ -> "Panic" :: trace  *)
-   Some(parse_input(s))
+   parse_input(s)
 
 
    (* 
