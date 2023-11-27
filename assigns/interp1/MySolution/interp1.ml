@@ -168,12 +168,10 @@ let rec parse_constant () : constant parser =
 
    and parse_true () : constant parser =
       let* _ = keyword "True" in
-      let* _ = keyword ";" in
       pure (Bool true) << whitespaces
    
    and parse_false () : constant parser = 
       let* _ = keyword "False" in 
-      let* _ = keyword ";" in 
       pure (Bool false) << whitespaces
    
 
