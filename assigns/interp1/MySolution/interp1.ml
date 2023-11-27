@@ -153,6 +153,25 @@ let gt stack =
          (getInt i) > (getInt j)       
 ;; *)
 
+let andd(a: bool)(b: bool): bool = 
+   if a then 
+      if b then true 
+      else false 
+   else false
+;;
+
+let orr(a: bool)(b: bool): bool = 
+   if a then 
+      true 
+   else if b then 
+      true 
+   else false
+;;
+
+let nott(a: bool): bool = 
+   if a then false else true 
+;;
+
 
 let rec parse_constant () : constant parser = 
    parse_pos () <|> parse_neg () <|> parse_true () <|> parse_false ()
@@ -349,7 +368,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match a with 
             |Bool a -> 
                (match b with 
-               |Bool b -> compute coms (Bool(a&&b)::stack) trace 
+               |Bool b -> compute coms (Bool(andd a b)::stack) trace 
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -359,7 +378,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match a with 
             |Bool a -> 
                (match b with 
-               |Bool b -> compute coms (Bool(a||b)::stack) trace 
+               |Bool b -> compute coms (Bool(orr a b)::stack) trace 
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -387,7 +406,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
          (match stack with 
          |a::stack -> 
             (match a with 
-            |Bool a -> compute coms (Bool(not a)::stack) trace
+            |Bool a -> compute coms (Bool(nott a)::stack) trace
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
 ;;
