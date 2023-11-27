@@ -256,7 +256,26 @@ let rec parse_com () : com parser =
       (* let* res = many1' parse_com in  *)
       pure (Gt)
 
+
+(* remove blank chars at the front of a list *)
+let rec trim_list(cs: char list): char list =
+   match cs with
+   | [] -> cs
+   | '\n' :: cs -> trim_list cs
+   | '\t' :: cs -> trim_list cs
+   | '\r' :: cs -> trim_list cs
+   | ' ' :: cs -> trim_list cs
+   | _ -> cs
+;;
+
+let trim_string(cs: string): string = 
+   list_foldleft (trim_list (string_listize cs)) "" (fun acc c -> string_snoc acc c)
+;;
+
+
 let rec parse_input(s: string): com list = 
+   let s = trim_string s in 
+   if s = "" then [] else
    match string_parse(parse_com ()) s with 
    |Some(e, []) -> [e]
    |Some(e, rest) -> e::parse_input(list_foldleft(rest)("")(fun acc c -> string_snoc acc c))
@@ -270,7 +289,7 @@ let interp (s : string)  = (* YOUR CODE *)
    (* try string_parse (parse_com ()) s with
    |Some(e, []) -> Some e 
    |_ -> "Panic" :: trace  *)
-   parse_input(s)
+   Some(parse_input(s))
 
 
    (* 
