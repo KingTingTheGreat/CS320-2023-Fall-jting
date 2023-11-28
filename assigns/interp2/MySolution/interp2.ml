@@ -22,7 +22,6 @@ type constant =
 type com = 
    |Push of constant
    |Pop
-   |Swap
    |Trace
    |Add 
    |Sub 
@@ -33,6 +32,8 @@ type com =
    |Not 
    |Lt 
    |Gt
+   |Swap
+   |IfElse of com list list
 ;;
 
 (* returns string representation of an integer *)
@@ -81,7 +82,7 @@ let rec parse_constant () : constant parser =
 
    and parse_neg () : constant parser = 
       let* _ = keyword "-" in 
-      let*n = natural in 
+      let* n = natural in 
       pure (Int (-1 * n)) << whitespaces
 
    and parse_true () : constant parser =
@@ -104,85 +105,82 @@ let rec parse_com () : com parser =
    parse_add () <|> parse_sub () <|> parse_mul () <|> 
    parse_div () <|> parse_and () <|> parse_or () <|> 
    parse_not () <|> parse_lt () <|> parse_gt() <|>
-   parse_swap ()
+   parse_swap () <|> parse_ifelse ()
 
    and parse_push () : com parser =
       let* _ = keyword "Push" in
       let* c = parse_constant () in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in  *)
       pure (Push c)
 
    and parse_pop () : com parser =
       let* _ = keyword "Pop" in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in  *)
       pure (Pop)
 
    and parse_trace () : com parser =
       let* _ = keyword "Trace" in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in *)
       pure (Trace)
 
    and parse_add () : com parser =
       let* _ = keyword "Add" in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in  *)
       pure (Add)
 
    and parse_sub () : com parser =
       let* _ = keyword "Sub" in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in  *)
       pure (Sub)
 
    and parse_mul () : com parser =
       let* _ = keyword "Mul" in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in  *)
       pure (Mul)
 
    and parse_div () : com parser =
       let* _ = keyword "Div" in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in  *)
       pure (Div)
 
    and parse_and () : com parser =
       let* _ = keyword "And" in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in  *)
       pure (And)
 
    and parse_or () : com parser =
       let* _ = keyword "Or" in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in  *)
       pure (Or)
 
    and parse_not () : com parser =
       let* _ = keyword "Not" in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in  *)
       pure (Not)
 
    and parse_lt () : com parser =
       let* _ = keyword "Lt" in
       let* _ = keyword ";" in
-      (* let* res = many1' parse_com in  *)
       pure (Lt)
 
    and parse_gt () : com parser =
       let* _ = keyword "Gt" in
       let* _ = keyword ";" in 
-      (* let* res = many1' parse_com in  *)
       pure (Gt)
 
    and parse_swap () : com parser = 
       let* _ = keyword "Swap" in 
       let* _ = keyword ";" in
       pure (Swap)
+
+   and parse_ifelse () : com parser = 
+      let* _ = keyword "If" in 
+      let* c1 = many1' parse_com in
+      let* _ = keyword "Else" in 
+      let* c2 = many1' parse_com in
+      let* _ = keyword "End" in 
+      let* _ = keyword ";" in
+      pure (IfElse [c1; c2])
 
 (* remove blank chars at the front of a list *)
 let rec trim_list(cs: char list): char list =
@@ -318,6 +316,16 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
       |Swap -> 
          (match stack with 
          |c1::c2::stack -> compute coms (c2::c1::stack) trace 
+         |_ -> "Panic"::trace)
+      |IfElse cs -> 
+         (match stack with 
+         |b::stack -> 
+            (match b with 
+            |Bool b -> 
+               (match cs with 
+               |c1::c2::[] -> if b then compute (list_append c1 coms) stack trace else compute (list_append c2 coms) stack trace
+               |_ -> "Panic"::trace)
+            |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
 ;;
 
