@@ -110,7 +110,11 @@ let rec parse_constant () : value parser =
       pure (Constant(Unit)) << whitespaces
 ;;
 
+let (&&) = andd;;
+
 let (||) = orr;;
+
+let (!!) = nott;;
 
 let alphanum = 
    (satisfy char_isdigit) <|> (satisfy char_islower) <|> (satisfy char_isupper)
@@ -310,7 +314,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match a with 
             |Bool a -> 
                (match b with 
-               |Bool b -> compute coms (Bool(andd a b)::stack) trace varenv
+               |Bool b -> compute coms (Bool(a && b)::stack) trace varenv
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -320,7 +324,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match a with 
             |Bool a -> 
                (match b with 
-               |Bool b -> compute coms (Bool(orr a b)::stack) trace varenv
+               |Bool b -> compute coms (Bool(a || b)::stack) trace varenv
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -328,7 +332,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
          (match stack with 
          |a::stack -> 
             (match a with 
-            |Bool a -> compute coms (Bool(nott a)::stack) trace varenv
+            |Bool a -> compute coms (Bool(!! a)::stack) trace varenv
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
       |Lt ->
