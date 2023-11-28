@@ -19,8 +19,13 @@ type constant =
    |Unit 
 ;;
 
+type value = 
+   |Constant of constant 
+   |Symbol of string
+;;
+
 type com = 
-   |Push of constant
+   |Push of value
    |Pop
    |Trace
    |Add 
@@ -34,6 +39,8 @@ type com =
    |Gt
    |Swap
    |IfElse of com list list
+   |Bind 
+   |Lookup
 ;;
 
 (* returns string representation of an integer *)
@@ -44,11 +51,17 @@ let rec intToString(x: int): string =
 ;;
 
 (* returns string presentations of a constant *)
-let toString(x: constant): string = 
+let constantToString(x: constant): string = 
    match x with
    |Unit -> "Unit"
    |Bool b -> if b then "True" else "False"
    |Int i -> intToString i 
+;;
+
+let toString(x: value): string = 
+   match x with 
+   |Constant x -> constantToString x 
+   |Symbol x -> x
 ;;
 
 (* defining boolean operators *)
@@ -71,32 +84,54 @@ let nott(a: bool): bool =
    if a then false else true 
 ;;
 
-
 (* parse constants *)
-let rec parse_constant () : constant parser = 
+let rec parse_constant () : value parser = 
    parse_pos () <|> parse_neg () <|> parse_true () <|> parse_false () <|> parse_unit ()
 
-   and parse_pos () : constant parser =
+   and parse_pos () : value parser =
       let* n = natural in
-      pure (Int n) << whitespaces
+      pure (Constant(Int n)) << whitespaces
 
-   and parse_neg () : constant parser = 
+   and parse_neg () : value parser = 
       let* _ = keyword "-" in 
       let* n = natural in 
-      pure (Int (-1 * n)) << whitespaces
+      pure (Constant(Int (-1 * n))) << whitespaces
 
-   and parse_true () : constant parser =
+   and parse_true () : value parser =
       let* _ = keyword "True" in
-      pure (Bool true) << whitespaces
+      pure (Constant(Bool true)) << whitespaces
    
-   and parse_false () : constant parser = 
+   and parse_false () : value parser = 
       let* _ = keyword "False" in 
-      pure (Bool false) << whitespaces
+      pure (Constant(Bool false)) << whitespaces
 
-   and parse_unit () : constant parser = 
+   and parse_unit () : value parser = 
       let* _ = keyword "Unit" in 
-      pure (Unit) << whitespaces
-   
+      pure (Constant(Unit)) << whitespaces
+;;
+
+let (||) = orr;;
+
+let alphanum = 
+   (satisfy char_isdigit) <|> (satisfy char_islower) <|> (satisfy char_isupper)
+
+let str : string parser =
+  fun ls ->
+  let@ (xs, ls) = many1 alphanum ls in
+  Some(list_foldleft(xs)("") (fun acc c -> string_snoc acc c), ls)
+;;
+
+let rec parse_symbol () : value parser = 
+   parse_x () 
+
+   and parse_x () : value parser =
+      let* s = str in 
+      pure (Symbol s) << whitespaces
+;;
+
+let parse_value () : value parser = 
+   parse_constant () <|> parse_symbol ()
+;;
 
 
 (* parse coms *)
@@ -109,7 +144,7 @@ let rec parse_com () : com parser =
 
    and parse_push () : com parser =
       let* _ = keyword "Push" in
-      let* c = parse_constant () in
+      let* c = parse_value () in
       let* _ = keyword ";" in
       pure (Push c)
 
@@ -214,27 +249,28 @@ let rec parse_input(s: string): com list option =
 
 let (++) = list_append;;
 
-let rec compute(coms: com list)(stack: constant list)(trace: string list): string list = 
+let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: value list): string list = 
    match coms with 
    |[] -> trace (* base case *)
    |com::coms -> (* recursive case; more coms to process *)
       match com with 
-      |Push c -> compute coms (c::stack) trace
+      |Push c -> compute coms (c::stack) trace varenv
       |Pop -> 
          (match stack with 
-         |c::stack -> compute coms stack trace
+         |c::stack -> compute coms stack trace varenv
          |_ -> "Panic"::trace)
       |Trace ->
          (match stack with
-         |c::stack -> compute coms (Unit::stack) (toString(c)::trace)
+         |c::stack -> compute coms (Constant(Unit)::stack) (toString(c)::trace) varenv
          |_ -> "Panic"::trace)
+      (*
       |Add ->
          (match stack with 
          |i::j::stack -> 
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> compute coms (Int(i+j)::stack) trace 
+               |Int j -> compute coms (Int(i+j)::stack) trace varenv
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -244,7 +280,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> compute coms (Int(i-j)::stack) trace 
+               |Int j -> compute coms (Int(i-j)::stack) trace varenv
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -254,7 +290,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> compute coms (Int(i*j)::stack) trace 
+               |Int j -> compute coms (Int(i*j)::stack) trace varenv
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -264,7 +300,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> if j = 0 then ("Panic"::trace) else (compute coms (Int(i/j)::stack) trace) 
+               |Int j -> if j = 0 then ("Panic"::trace) else (compute coms (Int(i/j)::stack) trace varenv) 
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -274,7 +310,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match a with 
             |Bool a -> 
                (match b with 
-               |Bool b -> compute coms (Bool(andd a b)::stack) trace 
+               |Bool b -> compute coms (Bool(andd a b)::stack) trace varenv
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -284,7 +320,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match a with 
             |Bool a -> 
                (match b with 
-               |Bool b -> compute coms (Bool(orr a b)::stack) trace 
+               |Bool b -> compute coms (Bool(orr a b)::stack) trace varenv
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -292,7 +328,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
          (match stack with 
          |a::stack -> 
             (match a with 
-            |Bool a -> compute coms (Bool(nott a)::stack) trace
+            |Bool a -> compute coms (Bool(nott a)::stack) trace varenv
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
       |Lt ->
@@ -301,7 +337,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> compute coms (Bool(i<j)::stack) trace 
+               |Int j -> compute coms (Bool(i<j)::stack) trace varenv
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -311,13 +347,13 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> compute coms (Bool(i>j)::stack) trace 
+               |Int j -> compute coms (Bool(i>j)::stack) trace varenv
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
       |Swap -> 
          (match stack with 
-         |c1::c2::stack -> compute coms (c2::c1::stack) trace 
+         |c1::c2::stack -> compute coms (c2::c1::stack) trace varenv
          |_ -> "Panic"::trace)
       |IfElse cs -> 
          (match stack with 
@@ -325,10 +361,12 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match b with 
             |Bool b -> 
                (match cs with 
-               |c1::c2::[] -> if b then compute (c1++coms) stack trace else compute (c2++coms) stack trace
+               |c1::c2::[] -> if b then compute (c1++coms) stack trace else compute (c2++coms) stack trace varenv
                |_ -> "Panic"::trace)
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
+      *)
+      |_ -> "Panic"::trace
 ;;
 
 let interp (s : string) : string list option  = (* YOUR CODE *)
@@ -339,6 +377,6 @@ let interp (s : string) : string list option  = (* YOUR CODE *)
    match parse_input(s) with 
    |None -> None 
    |Some(coms) -> 
-      Some(compute(coms)([])([]))
+      Some(compute coms [] [] [])
 ;;
 
