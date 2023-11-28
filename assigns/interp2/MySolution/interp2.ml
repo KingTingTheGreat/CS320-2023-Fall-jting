@@ -287,14 +287,13 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(vars: str
          (match stack with
          |c::stack -> compute coms (Constant(Unit)::stack) (toString(c)::trace) vars vals
          |_ -> "Panic"::trace)
-      (*
       |Add ->
          (match stack with 
          |i::j::stack -> 
             (match i with 
-            |Int i -> 
+            |Constant Int i -> 
                (match j with 
-               |Int j -> compute coms (Int(i+j)::stack) trace vars vals
+               |Constant Int j -> compute coms (Constant (Int(i+j))::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -302,9 +301,9 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(vars: str
          (match stack with 
          |i::j::stack -> 
             (match i with 
-            |Int i -> 
+            |Constant Int i -> 
                (match j with 
-               |Int j -> compute coms (Int(i-j)::stack) trace vars vals
+               |Constant Int j -> compute coms (Constant(Int(i-j))::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -312,9 +311,9 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(vars: str
          (match stack with 
          |i::j::stack -> 
             (match i with 
-            |Int i -> 
+            |Constant Int i -> 
                (match j with 
-               |Int j -> compute coms (Int(i*j)::stack) trace vars vals
+               |Constant Int j -> compute coms (Constant(Int(i*j))::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -322,9 +321,9 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(vars: str
          (match stack with 
          |i::j::stack -> 
             (match i with 
-            |Int i -> 
+            |Constant Int i -> 
                (match j with 
-               |Int j -> if j = 0 then ("Panic"::trace) else (compute coms (Int(i/j)::stack) trace vars vals) 
+               |Constant Int j -> if j = 0 then ("Panic"::trace) else (compute coms (Constant(Int(i/j))::stack) trace vars vals) 
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -332,9 +331,9 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(vars: str
          (match stack with 
          |a::b::stack -> 
             (match a with 
-            |Bool a -> 
+            |Constant Bool a -> 
                (match b with 
-               |Bool b -> compute coms (Bool(a && b)::stack) trace vars vals
+               |Constant Bool b -> compute coms (Constant(Bool(a && b))::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -342,9 +341,9 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(vars: str
          (match stack with 
          |a::b::stack -> 
             (match a with 
-            |Bool a -> 
+            |Constant Bool a -> 
                (match b with 
-               |Bool b -> compute coms (Bool(a || b)::stack) trace vars vals
+               |Constant Bool b -> compute coms (Constant(Bool(a || b))::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -352,16 +351,16 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(vars: str
          (match stack with 
          |a::stack -> 
             (match a with 
-            |Bool a -> compute coms (Bool(!! a)::stack) trace vars vals
+            |Constant Bool a -> compute coms (Constant(Bool(!! a))::stack) trace vars vals
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
       |Lt ->
          (match stack with 
          |i::j::stack -> 
             (match i with 
-            |Int i -> 
+            |Constant Int i -> 
                (match j with 
-               |Int j -> compute coms (Bool(i<j)::stack) trace vars vals
+               |Constant Int j -> compute coms (Constant(Bool(i<j))::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -369,9 +368,9 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(vars: str
          (match stack with 
          |i::j::stack -> 
             (match i with 
-            |Int i -> 
+            |Constant Int i -> 
                (match j with 
-               |Int j -> compute coms (Bool(i>j)::stack) trace vars vals
+               |Constant Int j -> compute coms (Constant(Bool(i>j))::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -383,13 +382,12 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(vars: str
          (match stack with 
          |b::stack -> 
             (match b with 
-            |Bool b -> 
+            |Constant Bool b -> 
                (match cs with 
-               |c1::c2::[] -> if b then compute (c1++coms) stack trace else compute (c2++coms) stack trace vars vals
+               |c1::c2::[] -> if b then compute (c1++coms) stack trace vars vals else compute (c2++coms) stack trace vars vals
                |_ -> "Panic"::trace)
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
-      *)
       |Bind -> 
          (match stack with 
          |x::v::stack -> 
