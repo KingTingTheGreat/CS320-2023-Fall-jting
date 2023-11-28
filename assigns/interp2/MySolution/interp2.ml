@@ -212,6 +212,8 @@ let rec parse_input(s: string): com list option =
       |None -> None
 ;;
 
+let (++) = list_append;;
+
 let rec compute(coms: com list)(stack: constant list)(trace: string list): string list = 
    match coms with 
    |[] -> trace (* base case *)
@@ -323,7 +325,7 @@ let rec compute(coms: com list)(stack: constant list)(trace: string list): strin
             (match b with 
             |Bool b -> 
                (match cs with 
-               |c1::c2::[] -> if b then compute (list_append c1 coms) stack trace else compute (list_append c2 coms) stack trace
+               |c1::c2::[] -> if b then compute (c1++coms) stack trace else compute (c2++coms) stack trace
                |_ -> "Panic"::trace)
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
