@@ -144,7 +144,8 @@ let rec parse_com () : com parser =
    parse_add () <|> parse_sub () <|> parse_mul () <|> 
    parse_div () <|> parse_and () <|> parse_or () <|> 
    parse_not () <|> parse_lt () <|> parse_gt() <|>
-   parse_swap () <|> parse_ifelse ()
+   parse_swap () <|> parse_ifelse () <|> parse_bind () <|>
+   parse_lookup ()
 
    and parse_push () : com parser =
       let* _ = keyword "Push" in
@@ -221,6 +222,16 @@ let rec parse_com () : com parser =
       let* _ = keyword ";" in
       pure (IfElse [c1; c2])
 
+   and parse_bind () : com parser = 
+      let* _ = keyword "Bind" in 
+      let* _ = keyword ";" in
+      pure (Bind)
+
+   and parse_lookup () : com parser = 
+      let* _ = keyword "Lookup" in 
+      let* _ = keyword ";" in
+      pure (Lookup)
+
 (* remove blank chars at the front of a list *)
 let rec trim_list(cs: char list): char list =
    match cs with
@@ -253,19 +264,28 @@ let rec parse_input(s: string): com list option =
 
 let (++) = list_append;;
 
-let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: value list): string list = 
+let rec valueOf(x:string)(vars: string list)(vals: value list): value option = 
+   match vars with 
+   |var::vars -> 
+      (match vals with 
+      |v::vals -> if var = x then Some(v) else (valueOf x vars vals)
+      |_ -> None)
+   |_ -> None
+;;
+
+let rec compute(coms: com list)(stack: value list)(trace: string list)(vars: string list)(vals: value list): string list = 
    match coms with 
    |[] -> trace (* base case *)
    |com::coms -> (* recursive case; more coms to process *)
       match com with 
-      |Push c -> compute coms (c::stack) trace varenv
+      |Push c -> compute coms (c::stack) trace vars vals
       |Pop -> 
          (match stack with 
-         |c::stack -> compute coms stack trace varenv
+         |c::stack -> compute coms stack trace vars vals
          |_ -> "Panic"::trace)
       |Trace ->
          (match stack with
-         |c::stack -> compute coms (Constant(Unit)::stack) (toString(c)::trace) varenv
+         |c::stack -> compute coms (Constant(Unit)::stack) (toString(c)::trace) vars vals
          |_ -> "Panic"::trace)
       (*
       |Add ->
@@ -274,7 +294,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> compute coms (Int(i+j)::stack) trace varenv
+               |Int j -> compute coms (Int(i+j)::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -284,7 +304,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> compute coms (Int(i-j)::stack) trace varenv
+               |Int j -> compute coms (Int(i-j)::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -294,7 +314,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> compute coms (Int(i*j)::stack) trace varenv
+               |Int j -> compute coms (Int(i*j)::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -304,7 +324,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> if j = 0 then ("Panic"::trace) else (compute coms (Int(i/j)::stack) trace varenv) 
+               |Int j -> if j = 0 then ("Panic"::trace) else (compute coms (Int(i/j)::stack) trace vars vals) 
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -314,7 +334,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match a with 
             |Bool a -> 
                (match b with 
-               |Bool b -> compute coms (Bool(a && b)::stack) trace varenv
+               |Bool b -> compute coms (Bool(a && b)::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -324,7 +344,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match a with 
             |Bool a -> 
                (match b with 
-               |Bool b -> compute coms (Bool(a || b)::stack) trace varenv
+               |Bool b -> compute coms (Bool(a || b)::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -332,7 +352,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
          (match stack with 
          |a::stack -> 
             (match a with 
-            |Bool a -> compute coms (Bool(!! a)::stack) trace varenv
+            |Bool a -> compute coms (Bool(!! a)::stack) trace vars vals
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
       |Lt ->
@@ -341,7 +361,7 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> compute coms (Bool(i<j)::stack) trace varenv
+               |Int j -> compute coms (Bool(i<j)::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
@@ -351,13 +371,13 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match i with 
             |Int i -> 
                (match j with 
-               |Int j -> compute coms (Bool(i>j)::stack) trace varenv
+               |Int j -> compute coms (Bool(i>j)::stack) trace vars vals
                |_ -> "Panic"::trace) 
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
       |Swap -> 
          (match stack with 
-         |c1::c2::stack -> compute coms (c2::c1::stack) trace varenv
+         |c1::c2::stack -> compute coms (c2::c1::stack) trace vars vals
          |_ -> "Panic"::trace)
       |IfElse cs -> 
          (match stack with 
@@ -365,11 +385,28 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: v
             (match b with 
             |Bool b -> 
                (match cs with 
-               |c1::c2::[] -> if b then compute (c1++coms) stack trace else compute (c2++coms) stack trace varenv
+               |c1::c2::[] -> if b then compute (c1++coms) stack trace else compute (c2++coms) stack trace vars vals
                |_ -> "Panic"::trace)
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
       *)
+      |Bind -> 
+         (match stack with 
+         |x::v::stack -> 
+            (match x with 
+            |Symbol x -> compute coms stack trace (x::vars) (v::vals)
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
+      |Lookup -> 
+         (match stack with 
+         |x::stack -> 
+            (match x with 
+            |Symbol x -> 
+               (match valueOf x vars vals with 
+               |Some v -> compute coms (v::stack) trace vars vals
+               |_ -> "Panic"::trace)
+            |_ -> "Panic"::trace)
+         |_ -> "Panic"::trace)
       |_ -> "Panic"::trace
 ;;
 
@@ -381,6 +418,6 @@ let interp (s : string) : string list option  = (* YOUR CODE *)
    match parse_input(s) with 
    |None -> None 
    |Some(coms) -> 
-      Some(compute coms [] [] [])
+      Some(compute coms [] [] [] [])
 ;;
 
