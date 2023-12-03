@@ -22,7 +22,7 @@ type com =
   | Push of const | Pop | Trace
   | Add | Sub | Mul | Div
   | And | Or | Not
-  | Lt | Gt
+  | Lt | Gt | Swap
 
 type coms = com list
 
@@ -60,7 +60,8 @@ let parse_com =
   (keyword "Or" >> pure Or) <|>
   (keyword "Not" >> pure Not) <|>
   (keyword "Lt" >> pure Lt) <|>
-  (keyword "Gt" >> pure Gt)
+  (keyword "Gt" >> pure Gt) <|>
+  (keyword "Swap" >> pure Swap)
 
 let parse_coms = many (parse_com << keyword ";")
 
@@ -159,6 +160,11 @@ let rec eval (s : stack) (t : trace) (p : prog) : trace =
      | _ :: _ :: s0         (* GtError1 *) -> eval [] ("Panic" :: t) []
      | []                   (* GtError2 *) -> eval [] ("Panic" :: t) []
      | _ :: []              (* GtError3 *) -> eval [] ("Panic" :: t) [])
+  | Swap :: p0 -> 
+    (match s with 
+    | c1 :: c2 :: s0 (* SwapStack *) -> eval (c2 :: c1 :: s0) t p0 
+    | []            (* SwapError1 *) -> eval [] ("Panic" :: t) []
+    | _ :: []       (* SwapError2 *) -> eval [] ("Panic" :: t) [])
 
 (* ------------------------------------------------------------ *)
 
