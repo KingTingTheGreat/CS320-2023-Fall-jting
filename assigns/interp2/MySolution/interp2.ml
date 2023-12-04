@@ -146,11 +146,8 @@ let str : string parser =
 ;;
 
 let rec parse_symbol () : value parser = 
-   parse_x () 
-
-   and parse_x () : value parser =
-      let* s = str in 
-      pure (Symbol s) << whitespaces
+   let* s = str in 
+   pure (Symbol s) << whitespaces
 ;;
 
 let parse_value () : value parser = 
@@ -236,9 +233,9 @@ let rec parse_com () : com parser =
 
    and parse_ifelse () : com parser = 
       let* _ = keyword "If" in 
-      let* c1 = many1' parse_com in
+      let* c1 = many' parse_com in
       let* _ = keyword "Else" in 
-      let* c2 = many1' parse_com in
+      let* c2 = many' parse_com in
       let* _ = keyword "End" in 
       let* _ = keyword ";" in
       pure (IfElse [c1; c2])
@@ -255,7 +252,7 @@ let rec parse_com () : com parser =
 
    and parse_fun () : com parser = 
       let* _ = keyword "Fun" in 
-      let* cs = many1' parse_com in
+      let* cs = many' parse_com in
       let* _ = keyword "End" in 
       let* _ = keyword ";" in
       pure (Fun cs)
