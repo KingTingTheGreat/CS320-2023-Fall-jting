@@ -426,9 +426,9 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: s
             |Constant Bool b -> 
                (match cs with 
                |c1::c2::[] -> if b then compute (c1++coms) stack trace varenv else compute (c2++coms) stack trace varenv
-               |_ -> "Panic"::trace)
-            |_ -> "Panic"::trace)
-         |_ -> "Panic"::trace)
+               |_ -> "Panic - ifelse"::trace)
+            |_ -> "Panic - ifelse"::trace)
+         |_ -> "Panic - ifelse"::trace)
       |Bind -> 
          (match stack with 
          |x::v::stack -> 
@@ -436,36 +436,34 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: s
             |Symbol x -> 
                (match varenv with 
                |(vars, vals) -> compute coms stack trace ((x::vars), (v::vals)))
-            |_ -> "Panic"::trace)
-         |_ -> "Panic"::trace)
+            |_ -> "Panic - bind"::trace)
+         |_ -> "Panic - bind"::trace)
       |Lookup -> 
          (match stack with 
          |x::stack -> 
+            let () = print_endline (toString(x)) in
             (match x with 
             |Symbol x -> 
                (match valueOf x varenv with 
                |Some v -> compute coms (v::stack) trace varenv
-               |_ -> "Panic"::trace)
-            |_ -> "Panic"::trace)
-         |_ -> "Panic"::trace)
+               |_ -> "Panic - lookup not found"::trace)
+            |_ -> (string_append "Panic - lookup not a symbol" (toString(x)))::trace)
+         |_ -> "Panic - lookup empty stack"::trace)
       |Fun cs -> 
          (match stack with 
-         |x::stack -> 
-            (match x with 
-            |Symbol x -> 
-               compute coms (Closure (x, varenv, cs)::stack) trace varenv
-            |_ -> "Panic"::trace)
-         |_ -> "Panic"::trace)
+         |Symbol x :: stack -> compute coms (Closure (x, varenv, cs)::stack) trace varenv
+         |_ -> "Panic - fun"::trace)
       |Call ->
          (match stack with
          |Closure (cname, cvarenv, ccoms) :: a :: stack -> 
             (match varenv with 
-            |(vars, vals) -> compute ccoms (a::Closure ("cc", varenv, coms)::stack) trace (cname::vars, Closure (cname, cvarenv, ccoms)::vals))
-         |_ -> "Panic"::trace)
+            |(vars, vals) -> 
+               compute ccoms (a::Closure ("cc", varenv, coms)::stack) trace (cname::vars, Closure (cname, cvarenv, ccoms)::vals))
+         |_ -> "Panic - call"::trace)
       |Return -> 
          (match stack with 
          |Closure (ccname, cvarenv, ccoms) :: a :: stack -> compute ccoms (a::stack) trace cvarenv
-         |_ -> "Panic"::trace)
+         |_ -> "Panic - call"::trace)
 ;;
 
 let interp (s : string) : string list option  = (* YOUR CODE *)
