@@ -301,14 +301,8 @@ let (++) = list_append;;
 
 let rec valueOf(x:string)(varenv: string list * value list): value option = 
    match varenv with 
-   |(vars, vals) -> 
-      (match vars with 
-      |var::vars -> 
-         (match vals with 
-         |v::vals ->          
-         if var = x then Some(v) else (valueOf x (vars, vals))
-         |_ -> None)
-      |_ -> None)
+   |(var::vars, v::vals) -> if var = x then Some(v) else (valueOf x (vars, vals))
+   |_ -> None
 ;;
 
 let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: string list * value list): string list = 
