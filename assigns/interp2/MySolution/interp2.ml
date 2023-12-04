@@ -209,7 +209,7 @@ let rec parse_com () : com parser =
 
    and parse_gt () : com parser =
       let* _ = keyword "Gt" in
-      let* _ = keyword ";" in 
+      (* let* _ = keyword ";" in  *)
       pure (Gt)
 
    and parse_swap () : com parser = 
@@ -220,10 +220,10 @@ let rec parse_com () : com parser =
    and parse_ifelse () : com parser = 
       let* _ = keyword "If" in 
       (* let* c1 = many' parse_com in *)
-      let* c1 = many (parse_com () << keyword ";") in 
+      let* c1 = parse_coms () in 
       let* _ = keyword "Else" in 
       (* let* c2 = many' parse_com in *)
-      let* c2 = many (parse_com () << keyword ";") in
+      let* c2 = parse_coms () in
       let* _ = keyword "End" in 
       (* let* _ = keyword ";" in *)
       pure (IfElse [c1; c2])
@@ -241,7 +241,7 @@ let rec parse_com () : com parser =
    and parse_fun () : com parser = 
       let* _ = keyword "Fun" in 
       (* let* cs = many' parse_com in *)
-      let* cs = many (parse_com () << keyword ";") in
+      let* cs = parse_coms () in
       let* _ = keyword "End" in 
       (* let* _ = keyword ";" in *)
       pure (Fun cs)
@@ -255,8 +255,7 @@ let rec parse_com () : com parser =
       let* _ = keyword "Return" in 
       (* let* _ = keyword ";" in  *)
       pure (Return)
-
-let parse_coms = many (parse_com () << keyword ";");;
+   and parse_coms() = many (parse_com () << keyword ";");;
 
 (* remove blank chars at the front of a list *)
 let rec trim_list(cs: char list): char list =
@@ -288,7 +287,7 @@ let rec parse_input(s: string): com list option =
       |Some(r) -> Some(e::r)
       |None -> None
       *)
-   match string_parse (whitespaces >> parse_coms) s with 
+   match string_parse (whitespaces >> parse_coms ()) s with 
    |Some (coms, []) -> Some(coms) 
    |_ -> None
 ;;
@@ -297,7 +296,11 @@ let (++) = list_append;;
 
 let rec valueOf(x:string)(varenv: string list * value list): value option = 
    match varenv with 
-   |(var::vars, v::vals) -> if var = x then Some(v) else (valueOf x (vars, vals))
+   |(var::vars, v::vals) -> 
+      (* let () = print_endline "CURRENT CHECK:" in 
+      let () = print_endline var in *)
+      if var = x then Some(v) 
+      else (valueOf x (vars, vals))
    |_ -> None
 ;;
 
@@ -368,33 +371,38 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: s
       |Bind -> 
          (match stack with 
          |Symbol x::v::stack -> 
+            (* let () = print_endline "BINDING:" in 
+            let () = print_endline (toString (Symbol x)) in *)
             (match varenv with 
             |(vars, vals) -> compute coms stack trace ((x::vars), (v::vals)))
          |_ -> "Panic"::trace)
       |Lookup -> 
          (match stack with 
          |x::stack -> 
+            (* let () = print_endline (toString x) in *)
             (match x with 
             |Symbol x -> 
                (match valueOf x varenv with 
                |Some v -> compute coms (v::stack) trace varenv
-               |_ -> "Panic"::trace)
-            |_ -> (string_append "Panic" (toString(x)))::trace)
-         |_ -> "Panic"::trace)
+               |None -> "Panic - not found"::trace)
+            |_ -> (string_append "Panic - not a symbol" (toString(x)))::trace)
+         |_ -> "Panic - empty stack"::trace)
       |Fun cs -> 
          (match stack with 
          |Symbol x :: stack -> compute coms (Closure (x, varenv, cs)::stack) trace varenv
          |_ -> "Panic"::trace)
       |Call ->
          (match stack with
-         |Closure (cname, cvarenv, ccoms) :: a :: stack -> 
+         |Closure (cname, (cvars, cvals), ccoms) :: a :: stack -> 
             (match varenv with 
             |(vars, vals) -> 
-               compute ccoms (a::Closure ("cc", varenv, coms)::stack) trace (cname::vars, Closure (cname, cvarenv, ccoms)::vals))
+               compute ccoms (a::Closure ("cc", varenv, coms)::stack) trace (cname::cvars, Closure (cname, (cvars, cvals), ccoms)::cvals))
          |_ -> "Panic"::trace)
       |Return -> 
          (match stack with 
-         |Closure (ccname, cvarenv, ccoms) :: a :: stack -> compute ccoms (a::stack) trace cvarenv
+         |Closure (ccname, (cvars, cvals), ccoms) :: a :: stack -> 
+            (match varenv with 
+            |(vars, vals) -> compute ccoms (a::stack) trace (cvars, cvals))
          |_ -> "Panic"::trace)
 ;;
 
