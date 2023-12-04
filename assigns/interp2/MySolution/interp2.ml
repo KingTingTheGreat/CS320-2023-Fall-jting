@@ -19,10 +19,6 @@ type constant =
    |Unit 
 ;;
 
-(* type stackfun = {name: string; varenv: string; coms: string};; *)
-
-(* type stackfun = string * (string list * constant list) * com list *)
-
 type symbol = string;;
 
 type value = 
@@ -154,151 +150,92 @@ let rec parse_com () : com parser =
    and parse_push () : com parser =
       let* _ = keyword "Push" in
       let* c = parse_value () in
-      (* let* _ = keyword ";" in *)
       pure (Push c)
 
    and parse_pop () : com parser =
       let* _ = keyword "Pop" in
-      (* let* _ = keyword ";" in *)
       pure (Pop)
 
    and parse_trace () : com parser =
       let* _ = keyword "Trace" in
-      (* let* _ = keyword ";" in *)
       pure (Trace)
 
    and parse_add () : com parser =
       let* _ = keyword "Add" in
-      (* let* _ = keyword ";" in *)
       pure (Add)
 
    and parse_sub () : com parser =
       let* _ = keyword "Sub" in
-      (* let* _ = keyword ";" in *)
       pure (Sub)
 
    and parse_mul () : com parser =
       let* _ = keyword "Mul" in
-      (* let* _ = keyword ";" in *)
       pure (Mul)
 
    and parse_div () : com parser =
       let* _ = keyword "Div" in
-      (* let* _ = keyword ";" in *)
       pure (Div)
 
    and parse_and () : com parser =
       let* _ = keyword "And" in
-      (* let* _ = keyword ";" in *)
       pure (And)
 
    and parse_or () : com parser =
       let* _ = keyword "Or" in
-      (* let* _ = keyword ";" in *)
       pure (Or)
 
    and parse_not () : com parser =
       let* _ = keyword "Not" in
-      (* let* _ = keyword ";" in *)
       pure (Not)
 
    and parse_lt () : com parser =
       let* _ = keyword "Lt" in
-      (* let* _ = keyword ";" in *)
       pure (Lt)
 
    and parse_gt () : com parser =
       let* _ = keyword "Gt" in
-      (* let* _ = keyword ";" in  *)
       pure (Gt)
 
    and parse_swap () : com parser = 
       let* _ = keyword "Swap" in 
-      (* let* _ = keyword ";" in *)
       pure (Swap)
 
    and parse_ifelse () : com parser = 
       let* _ = keyword "If" in 
-      (* let* c1 = many' parse_com in *)
       let* c1 = parse_coms () in 
       let* _ = keyword "Else" in 
-      (* let* c2 = many' parse_com in *)
       let* c2 = parse_coms () in
       let* _ = keyword "End" in 
-      (* let* _ = keyword ";" in *)
       pure (IfElse [c1; c2])
 
    and parse_bind () : com parser = 
       let* _ = keyword "Bind" in 
-      (* let* _ = keyword ";" in *)
       pure (Bind)
 
    and parse_lookup () : com parser = 
       let* _ = keyword "Lookup" in 
-      (* let* _ = keyword ";" in *)
       pure (Lookup)
 
    and parse_fun () : com parser = 
       let* _ = keyword "Fun" in 
-      (* let* cs = many' parse_com in *)
       let* cs = parse_coms () in
       let* _ = keyword "End" in 
-      (* let* _ = keyword ";" in *)
       pure (Fun cs)
 
    and parse_call () : com parser = 
       let* _ = keyword "Call" in 
-      (* let* _ = keyword ";" in  *)
       pure (Call)
 
    and parse_return () : com parser = 
       let* _ = keyword "Return" in 
-      (* let* _ = keyword ";" in  *)
       pure (Return)
    and parse_coms() = many (parse_com () << keyword ";");;
-
-(* remove blank chars at the front of a list *)
-let rec trim_list(cs: char list): char list =
-   match cs with
-   | [] -> cs
-   | '\n' :: cs -> trim_list cs
-   | '\t' :: cs -> trim_list cs
-   | '\r' :: cs -> trim_list cs
-   | ' ' :: cs -> trim_list cs
-   | _ -> cs
-;;
-
-let trim_string(cs: string): string = 
-   list_foldleft (trim_list (string_listize cs)) "" (fun acc c -> string_snoc acc c)
-;;
-
-
-let rec parse_input(s: string): com list option = 
-   (*
-   (* remove leading whitespace *)
-   let s = trim_string s in 
-   if s = "" then Some([]) else
-   match string_parse(parse_com ()) s with 
-   |None -> None
-   |Some(e, []) -> Some([e])
-   |Some(e, rest) -> (* recurse to the next command *)
-      let res = parse_input(list_foldleft(rest)("")(fun acc c -> string_snoc acc c)) in 
-      match res with 
-      |Some(r) -> Some(e::r)
-      |None -> None
-      *)
-   match string_parse (whitespaces >> parse_coms ()) s with 
-   |Some (coms, []) -> Some(coms) 
-   |_ -> None
-;;
 
 let (++) = list_append;;
 
 let rec valueOf(x:string)(varenv: string list * value list): value option = 
    match varenv with 
    |(var::vars, v::vals) -> 
-      (* let () = print_endline "CURRENT CHECK:" in 
-      let () = print_endline var in *)
       if var = x then Some(v) 
       else (valueOf x (vars, vals))
    |_ -> None
@@ -371,15 +308,12 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: s
       |Bind -> 
          (match stack with 
          |Symbol x::v::stack -> 
-            (* let () = print_endline "BINDING:" in 
-            let () = print_endline (toString (Symbol x)) in *)
             (match varenv with 
             |(vars, vals) -> compute coms stack trace ((x::vars), (v::vals)))
          |_ -> "Panic"::trace)
       |Lookup -> 
          (match stack with 
          |x::stack -> 
-            (* let () = print_endline (toString x) in *)
             (match x with 
             |Symbol x -> 
                (match valueOf x varenv with 
@@ -406,15 +340,15 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: s
          |_ -> "Panic"::trace)
 ;;
 
+
 let interp (s : string) : string list option  = (* YOUR CODE *)
    (*
    parse input to create a list of commands; return None if parsing fails
    otherwise, perform the commands   
    *)
-   match parse_input(s) with 
-   |None -> None 
-   |Some(coms) -> 
-      Some(compute coms [] [] ([], []))
+   match string_parse (whitespaces >> parse_coms ()) s with
+   |Some(coms, []) -> Some(compute coms [] [] ([], []))
+   |_ -> None
 ;;
 
 (* ------------------------------------------------------------ *)
