@@ -22,7 +22,8 @@ type com =
   | Push of const | Pop | Trace
   | Add | Sub | Mul | Div
   | And | Or | Not
-  | Lt | Gt | Swap
+  | Lt | Gt | Swap 
+  | IfElse of const list
 
 type coms = com list
 
@@ -48,7 +49,7 @@ let parse_const =
   parse_bool <|>
   parse_unit
 
-let parse_com = 
+let rec parse_com = 
   (keyword "Push" >> parse_const >>= fun c -> pure (Push c)) <|>
   (keyword "Pop" >> pure Pop) <|>
   (keyword "Trace" >> pure Trace) <|>
@@ -61,8 +62,11 @@ let parse_com =
   (keyword "Not" >> pure Not) <|>
   (keyword "Lt" >> pure Lt) <|>
   (keyword "Gt" >> pure Gt) <|>
-  (keyword "Swap" >> pure Swap)
-
+  (keyword "Swap" >> pure Swap) <|>
+  (keyword "If" >> parse_com >>= (fun c1 -> 
+    (keyword "Else" >> parse_com >>= (fun c2 -> 
+      (keyword "End" >> pure (IfElse c1::c2::[])))))
+)
 let parse_coms = many (parse_com << keyword ";")
 
 (* ------------------------------------------------------------ *)
@@ -165,6 +169,14 @@ let rec eval (s : stack) (t : trace) (p : prog) : trace =
     | c1 :: c2 :: s0 (* SwapStack *)  -> eval (c2 :: c1 :: s0) t p0 
     | []             (* SwapError1 *) -> eval [] ("Panic" :: t) []
     | _ :: []        (* SwapError2 *) -> eval [] ("Panic" :: t) [])
+  | IfElse cs :: p0 -> 
+    (match s with 
+    | Bool b :: s0 -> 
+      (match cs with 
+      | c1 :: c2 :: [] -> if b then eval s0 t (c1 :: p0) else eval s0 t (c2 :: p0)
+      | _ -> eval [] ("IFELSE parsing went wrong (this is from exec)" :: t) [])
+    | []  (* IfElseError2 *) -> eval [] ("Panic" :: t) []
+    | _ :: [] (* IfElseError1 *) -> eval [] ("Panic" :: t) [])
 
 (* ------------------------------------------------------------ *)
 

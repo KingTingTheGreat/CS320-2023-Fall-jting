@@ -21,33 +21,42 @@ type constant =
 
 (* type stackfun = {name: string; varenv: string; coms: string};; *)
 
-type stackfun = string * (string list * constant list) * com list
+(* type stackfun = string * (string list * constant list) * com list *)
+
+type symbol = string;;
 
 type value = 
    |Constant of constant 
-   |Symbol of string
-   (* |StackFun of {name: string; varenv: string; coms: string} *)
-   |StackFun of 'a list * 'a list
-;;
+   |Symbol of symbol
+   |Closure of closure
 
-type com = 
-   |Push of value
-   |Pop
-   |Trace
-   |Add 
-   |Sub 
-   |Mul
-   |Div
-   |And 
-   |Or 
-   |Not 
-   |Lt 
-   |Gt
-   |Swap
-   |IfElse of com list list
-   |Bind 
-   |Lookup
-   |Fun of com list
+and 
+   closure = {
+      name: symbol;
+      varenv: string list * value list;
+      coms: com list
+   }
+and
+   com = 
+      |Push of value
+      |Pop
+      |Trace
+      |Add 
+      |Sub 
+      |Mul
+      |Div
+      |And 
+      |Or 
+      |Not 
+      |Lt 
+      |Gt
+      |Swap
+      |IfElse of com list list
+      |Bind 
+      |Lookup
+      |Fun of com list
+      |Call
+      |Return 
 ;;
 
 (* returns string representation of an integer *)
@@ -69,7 +78,7 @@ let toString(x: value): string =
    match x with 
    |Constant x -> constantToString x 
    |Symbol x -> x
-   |_ -> "function"
+   |Closure c -> string_append (string_append "Fun<" c.name) ">"
 ;;
 
 (* defining boolean operators *)
@@ -153,7 +162,8 @@ let rec parse_com () : com parser =
    parse_div () <|> parse_and () <|> parse_or () <|> 
    parse_not () <|> parse_lt () <|> parse_gt() <|>
    parse_swap () <|> parse_ifelse () <|> parse_bind () <|>
-   parse_lookup () <|> parse_fun ()
+   parse_lookup () <|> parse_fun () <|> parse_call () <|>
+   parse_return ()
 
    and parse_push () : com parser =
       let* _ = keyword "Push" in
@@ -247,6 +257,16 @@ let rec parse_com () : com parser =
       let* _ = keyword ";" in
       pure (Fun cs)
 
+   and parse_call () : com parser = 
+      let* _ = keyword "Call" in 
+      let* _ = keyword ";" in 
+      pure (Call)
+
+   and parse_return () : com parser = 
+      let* _ = keyword "Return" in 
+      let* _ = keyword ";" in 
+      pure (Return)
+
 (* remove blank chars at the front of a list *)
 let rec trim_list(cs: char list): char list =
    match cs with
@@ -285,10 +305,10 @@ let rec valueOf(x:string)(varenv: string list * value list): value option =
       (match vars with 
       |var::vars -> 
          (match vals with 
-         |v::vals -> if var = x then Some(v) else (valueOf x (vars, vals))
+         |v::vals ->          
+         if var = x then Some(v) else (valueOf x (vars, vals))
          |_ -> None)
       |_ -> None)
-   |_ -> None
 ;;
 
 let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: string list * value list): string list = 
@@ -429,10 +449,20 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: s
          (match stack with 
          |x::stack -> 
             (match x with 
-            |Symbol x -> compute coms (StackFun(x, (varenv), cs)::stack) trace varenv
+            |Symbol x -> 
+               compute coms (Closure {name=x; varenv=varenv; coms=cs;}::stack) trace varenv
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
-      |_ -> "Panic"::trace
+      |Call ->
+         (match stack with
+         |Closure c :: a :: stack -> 
+            (match varenv with 
+            |(vars, vals) -> compute c.coms (a::Closure {name="cc"; varenv=varenv; coms=coms}::stack) trace (c.name::vars, Closure c::vals))
+         |_ -> "Panic"::trace)
+      |Return -> 
+         (match stack with 
+         |Closure c :: a :: stack -> compute c.coms (a::stack) trace c.varenv
+         |_ -> "Panic"::trace)
 ;;
 
 let interp (s : string) : string list option  = (* YOUR CODE *)
