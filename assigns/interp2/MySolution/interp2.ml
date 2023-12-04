@@ -39,25 +39,11 @@ and
    } *)
 and
    com = 
-      |Push of value
-      |Pop
-      |Trace
-      |Add 
-      |Sub 
-      |Mul
-      |Div
-      |And 
-      |Or 
-      |Not 
-      |Lt 
-      |Gt
-      |Swap
-      |IfElse of com list list
-      |Bind 
-      |Lookup
-      |Fun of com list
-      |Call
-      |Return 
+      |Push of value |Pop |Trace |Add 
+      |Sub |Mul |Div |And |Or |Not 
+      |Lt |Gt |Swap |IfElse of com list list
+      |Bind |Lookup |Fun of com list
+      |Call |Return 
 ;;
 
 (* returns string representation of an integer *)
