@@ -31,11 +31,12 @@ type value =
    |Closure of closure
 
 and 
-   closure = {
+   closure = symbol * (string list * value list) * com list
+   (* {
       name: symbol;
       varenv: string list * value list;
       coms: com list
-   }
+   } *)
 and
    com = 
       |Push of value
@@ -78,7 +79,9 @@ let toString(x: value): string =
    match x with 
    |Constant x -> constantToString x 
    |Symbol x -> x
-   |Closure c -> string_append (string_append "Fun<" c.name) ">"
+   |Closure c -> 
+      match c with 
+      |(name, varenv, coms) -> string_append (string_append "Fun<" name) ">"
 ;;
 
 (* defining boolean operators *)
@@ -450,18 +453,18 @@ let rec compute(coms: com list)(stack: value list)(trace: string list)(varenv: s
          |x::stack -> 
             (match x with 
             |Symbol x -> 
-               compute coms (Closure {name=x; varenv=varenv; coms=cs;}::stack) trace varenv
+               compute coms (Closure (x, varenv, cs)::stack) trace varenv
             |_ -> "Panic"::trace)
          |_ -> "Panic"::trace)
       |Call ->
          (match stack with
-         |Closure c :: a :: stack -> 
+         |Closure (cname, cvarenv, ccoms) :: a :: stack -> 
             (match varenv with 
-            |(vars, vals) -> compute c.coms (a::Closure {name="cc"; varenv=varenv; coms=coms}::stack) trace (c.name::vars, Closure c::vals))
+            |(vars, vals) -> compute ccoms (a::Closure ("cc", varenv, coms)::stack) trace (cname::vars, Closure (cname, cvarenv, ccoms)::vals))
          |_ -> "Panic"::trace)
       |Return -> 
          (match stack with 
-         |Closure c :: a :: stack -> compute c.coms (a::stack) trace c.varenv
+         |Closure (ccname, cvarenv, ccoms) :: a :: stack -> compute ccoms (a::stack) trace cvarenv
          |_ -> "Panic"::trace)
 ;;
 
