@@ -376,10 +376,10 @@ let rec compute (expr_prog: expr): string =
     "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compute m) ^ "Swap;Return;End;"
   | App (m, n) ->
     (compute expr1) ^ (compute expr2) ^ "Swap;Call;"
-  | Let (string, m, n) -> 
+  | Let (var, m, n) -> 
     let v = compute m in 
     let coms = compute n in 
-    "Push " ^ string ^ ";" ^ v ^ "Push " ^ string ^ ";" ^ "Bind;" ^ coms
+    "Push " ^ var ^ ";" ^ v ^ "Push " ^ var ^ ";" ^ "Bind;" ^ coms
   | Seq (m, n) -> (compute m) ^ (compute n)
   | Ifte (b, m, n) -> 
     let b = compute b in 
