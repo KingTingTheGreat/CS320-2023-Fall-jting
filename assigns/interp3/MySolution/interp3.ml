@@ -1,4 +1,5 @@
 #use "./../../../classlib/OCaml/MyOCaml.ml";;
+#use "./../../interp2/MySolution/interp2.ml";;
 
 (*
 
@@ -335,27 +336,27 @@ let parse_prog (s : string) : expr =
 let (^) = string_append;;
 
 let rec intToString(x: int): string =
-  if x < 0 then string_append "-" (intToString (x * -1))
+  if x < 0 then "-" ^ (intToString (x * -1))
   else if x < 10 then str (char_of_digit x)
-  else string_append (intToString (x / 10)) (intToString (x mod 10))
+  else (intToString (x / 10)) ^ (intToString (x mod 10))
 ;;
 
 let boolToString(b: bool): string = 
   if b then "True" else "False"
 ;;
 
-let rec compute (expr_prog: expr): string = 
+let rec compiler_helper (expr_prog: expr): string = 
   match expr_prog with 
-  | Int i -> ("Push " ^ (intToString i) ^ ";")
+  | Int i -> "Push " ^ (intToString i) ^ ";"
   | Bool b -> "Push " ^ (boolToString b) ^ ";"
   | Unit -> "Push Unit;"
   | UOpr (uopr, m) -> 
     (match uopr with 
-    | Neg -> (compute m) ^ "Push -1;Mul;"
-    | Not -> (compute m) ^ "Not;")
+    | Neg -> (compiler_helper m) ^ "Push -1;Mul;"
+    | Not -> (compiler_helper m) ^ "Not;")
   | BOpr (bopr, m, n) -> 
-    let i: string = compute m in 
-    let j: string = compute n in 
+    let i: string = compiler_helper m in 
+    let j: string = compiler_helper n in 
     let p: string = i ^ j ^ "Swap;" in 
     (match  bopr with 
     | Add -> p ^ "Add;"
@@ -370,24 +371,53 @@ let rec compute (expr_prog: expr): string =
     | Lte -> p ^ "Gt;Not;"  (* <= is the same as !> *)
     | Gte -> p ^ "Lt;Not;"  (* >= is the same as !< *)
     | Eq -> p ^ "Gt;Not;" ^ p ^ "Lt;Not;And;"  (* equal if not greater than and not less than *))
-  | Var v -> "Push " ^ v ^ ";Lookup;"
+  | Var var -> "Push " ^ var ^ ";Lookup;"
   | Fun (f, x, m) -> 
-    (* "Fun Push " ^ x ^ ";Bind;" ^ (compute expr "") ^ "Return;End;Push " ^ f ^ ";Bind;"  *)
-    "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compute m) ^ "Swap;Return;End;"
+    (* "Fun Push " ^ x ^ ";Bind;" ^ (compiler_helper expr "") ^ "Return;End;Push " ^ f ^ ";Bind;"  *)
+    (match m with 
+    |Ifte (b, c1, c2) -> 
+      "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compiler_helper b) ^ 
+      "If " ^ (compiler_helper c1) ^ "Swap;Return;Else " ^ (compiler_helper c2)  ^ "Swap;Return;End;End;"
+    |_ -> "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compiler_helper m) ^ "Swap;Return;End;")
+    (* "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compiler_helper m) ^ "Swap;Return;End;" *)
   | App (m, n) ->
-    (compute expr1) ^ (compute expr2) ^ "Swap;Call;"
+    (compiler_helper m) ^ (compiler_helper n) ^ "Swap;Call;"
   | Let (var, m, n) -> 
-    let v = compute m in 
-    let coms = compute n in 
-    "Push " ^ var ^ ";" ^ v ^ "Push " ^ var ^ ";" ^ "Bind;" ^ coms
-  | Seq (m, n) -> (compute m) ^ (compute n)
+    let v = compiler_helper m in 
+    let coms = compiler_helper n in 
+    "Push " ^ var ^ ";" ^ v ^ "Swap;Bind;" ^ coms
+  | Seq (m, n) -> (compiler_helper m) ^ (compiler_helper n)
   | Ifte (b, m, n) -> 
-    let b = compute b in 
-    let c1 = compute m in 
-    let c2 = compute n in 
+    let b = compiler_helper b in 
+    let c1 = compiler_helper m in 
+    let c2 = compiler_helper n in 
     b ^ "If " ^ c1 ^ "Else " ^ c2 ^ "End;"
-  | Trace m -> (compute m) ^ "Trace;Pop;"
+  | Trace m -> (compiler_helper m) ^ "Trace;Pop;"
+  ;;
 
 let compile (s : string) : string = (* YOUR CODE *)
   let p: expr = parse_prog s in 
-  compute p
+  compiler_helper p
+  ;;
+
+
+(* ------------------------------------------------------------ *)
+
+(* compile then interp from file *)
+(* copied and edited from interp1 solution *)
+
+let read_file (fname : string) : string =
+  let fp = open_in fname in
+  let s = string_make_fwork (fun work ->
+      try
+        while true do
+          work (input_char fp)
+        done
+      with _ -> ())
+  in
+  close_in fp; s
+
+let compute_file (fname : string) : symbol list option =
+  let src = read_file fname in
+  let prog = compile src in
+  interp (prog)
