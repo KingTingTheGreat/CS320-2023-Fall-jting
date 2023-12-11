@@ -206,6 +206,7 @@ and parse_var () : expr parser =
   pure (Var x)
 
 and parse_fun () : expr parser =
+  let () = print_endline "parse fun" in 
   let* _ = keyword "fun" in
   let* xs = many1 parse_name in 
   let* _ = keyword "->" in
@@ -225,6 +226,7 @@ and parse_let () : expr parser =
   pure (Let (x, m, n))
 
 and parse_letrec () : expr parser =
+  let () = print_endline "parse letrec" in 
   let* _ = keyword "let" in
   let* _ = keyword "rec" in
   let* f = parse_name in
@@ -238,6 +240,7 @@ and parse_letrec () : expr parser =
   pure (Let (f, Fun (f, x, m), n))
 
 and parse_ifte () : expr parser =
+  let () = print_endline "parse ifelse" in 
   let* _ = keyword "if" in
   let* m = parse_expr () in
   let* _ = keyword "then" in
@@ -327,5 +330,63 @@ let parse_prog (s : string) : expr =
   match string_parse (whitespaces >> parse_expr ()) s with
   | Some (m, []) -> scope_expr m
   | _ -> raise SyntaxError
+;;
+
+let (^) = string_append;;
+
+let rec intToString(x: int): string =
+  if x < 0 then string_append "-" (intToString (x * -1))
+  else if x < 10 then str (char_of_digit x)
+  else string_append (intToString (x / 10)) (intToString (x mod 10))
+;;
+
+let boolToString(b: bool): string = 
+  if b then "True" else "False"
+;;
+
+let rec compute (expr_prog: expr)(string_prog: string): string = 
+  match expr_prog with 
+  | Int i -> ("Push " ^ (intToString i) ^ ";" ^ string_prog)
+  | Bool b -> "Push " ^ (boolToString b) ^ ";" ^ string_prog
+  | Unit -> "Push Unit;" ^ string_prog
+  | UOpr (uopr, expr) -> 
+    (match uopr with 
+    | Neg -> (compute expr "") ^ "Push -1;Mul;" ^ string_prog
+    | Not -> (compute expr "") ^ "Not;" ^ string_prog)
+  | BOpr (bopr, expr1, expr2) -> 
+    let i: string = compute expr1 "" in 
+    let j: string = compute expr2 "" in 
+    let p: string = i ^ j ^ "Swap;" in 
+    (match  bopr with 
+    | Add -> p ^ "Add;"
+    | Sub -> p ^ "Sub;"
+    | Mul -> p ^ "Mul;"
+    | Div -> p ^ "Div;"
+    | Mod -> p ^ "Div;" ^ j ^ "Mul;" ^ i ^ "Sub;";  (* i mod j == i - (i / j * j) *)
+    | And -> p ^ "And;"
+    | Or -> p ^ "Or;"
+    | Lt -> p ^ "Lt;"
+    | Gt -> p ^ "Gt;"
+    | Lte -> p ^ "Gt;Not;"  (* <= is the same as !> *)
+    | Gte -> p ^ "Lt;Not;"  (* >= is the same as !< *)
+    | Eq -> p ^ "Gt;Not;" ^ p ^ "Lt;Not;And;"  (* equal if not greater than and not less than *))
+  | Var string -> "Push " ^ string ^ ";Lookup;" ^ string_prog
+  | Fun (f, x, expr) -> 
+    "Push " ^ x ^ ";Bind;Fun " ^ (compute expr "") ^ "Return;End;Push " ^ f ^ ";Bind;Call;" 
+  | App (expr1, expr2) ->
+    (compute expr1 "") ^ (compute expr2 "")
+  | Let (string, expr1, expr2) -> 
+    let v = compute expr1 "" in 
+    let coms = compute expr2 "" in 
+    "Push " ^ string ^ ";" ^ v ^ "Push " ^ string ^ ";" ^ "Bind;" ^ coms
+  | Seq (expr1, expr2) -> (compute expr1 "" ) ^ (compute expr2 "" )
+  | Ifte (bexpr, cexpr1, cexpr2) -> 
+    let b = compute bexpr "" in 
+    let c1 = compute cexpr1 "" in 
+    let c2 = compute cexpr2 "" in 
+    b ^ "If " ^ c1 ^ "Else" ^ c2 ^ "End;"
+  | Trace expr -> (compute expr "") ^ "Trace;Pop;" ^ string_prog
 
 let compile (s : string) : string = (* YOUR CODE *)
+  let p: expr = parse_prog s in 
+  compute p ""
