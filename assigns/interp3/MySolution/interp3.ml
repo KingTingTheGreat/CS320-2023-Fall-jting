@@ -349,13 +349,13 @@ let rec compute (expr_prog: expr): string =
   | Int i -> ("Push " ^ (intToString i) ^ ";")
   | Bool b -> "Push " ^ (boolToString b) ^ ";"
   | Unit -> "Push Unit;"
-  | UOpr (uopr, expr) -> 
+  | UOpr (uopr, m) -> 
     (match uopr with 
-    | Neg -> (compute expr) ^ "Push -1;Mul;"
-    | Not -> (compute expr) ^ "Not;")
-  | BOpr (bopr, expr1, expr2) -> 
-    let i: string = compute expr1 in 
-    let j: string = compute expr2 in 
+    | Neg -> (compute m) ^ "Push -1;Mul;"
+    | Not -> (compute m) ^ "Not;")
+  | BOpr (bopr, m, n) -> 
+    let i: string = compute m in 
+    let j: string = compute n in 
     let p: string = i ^ j ^ "Swap;" in 
     (match  bopr with 
     | Add -> p ^ "Add;"
@@ -370,23 +370,23 @@ let rec compute (expr_prog: expr): string =
     | Lte -> p ^ "Gt;Not;"  (* <= is the same as !> *)
     | Gte -> p ^ "Lt;Not;"  (* >= is the same as !< *)
     | Eq -> p ^ "Gt;Not;" ^ p ^ "Lt;Not;And;"  (* equal if not greater than and not less than *))
-  | Var string -> "Push " ^ string ^ ";Lookup;"
-  | Fun (f, x, expr) -> 
+  | Var v -> "Push " ^ v ^ ";Lookup;"
+  | Fun (f, x, m) -> 
     (* "Fun Push " ^ x ^ ";Bind;" ^ (compute expr "") ^ "Return;End;Push " ^ f ^ ";Bind;"  *)
-    "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compute expr) ^ "Swap;Return;End;"
-  | App (expr1, expr2) ->
+    "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compute m) ^ "Swap;Return;End;"
+  | App (m, n) ->
     (compute expr1) ^ (compute expr2) ^ "Swap;Call;"
-  | Let (string, expr1, expr2) -> 
-    let v = compute expr1 in 
-    let coms = compute expr2 in 
+  | Let (string, m, n) -> 
+    let v = compute m in 
+    let coms = compute n in 
     "Push " ^ string ^ ";" ^ v ^ "Push " ^ string ^ ";" ^ "Bind;" ^ coms
-  | Seq (expr1, expr2) -> (compute expr1) ^ (compute expr2)
-  | Ifte (bexpr, cexpr1, cexpr2) -> 
-    let b = compute bexprin 
-    let c1 = compute cexpr1 in 
-    let c2 = compute cexpr2in 
+  | Seq (m, n) -> (compute m) ^ (compute n)
+  | Ifte (b, m, n) -> 
+    let b = compute b in 
+    let c1 = compute m in 
+    let c2 = compute n in 
     b ^ "If " ^ c1 ^ "Else " ^ c2 ^ "End;"
-  | Trace expr -> (compute expr) ^ "Trace;Pop;" ^ string_prog
+  | Trace m -> (compute m) ^ "Trace;Pop;"
 
 let compile (s : string) : string = (* YOUR CODE *)
   let p: expr = parse_prog s in 
