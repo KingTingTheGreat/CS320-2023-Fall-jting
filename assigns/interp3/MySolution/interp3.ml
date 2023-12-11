@@ -1,5 +1,4 @@
 #use "./../../../classlib/OCaml/MyOCaml.ml";;
-#use "./../../interp2/MySolution/interp2.ml";;
 
 (*
 
@@ -400,7 +399,7 @@ let compile (s : string) : string = (* YOUR CODE *)
   compiler_helper p
   ;;
 
-
+(*
 (* ------------------------------------------------------------ *)
 
 (* compile then interp from file *)
@@ -421,3 +420,4 @@ let compute_file (fname : string) : symbol list option =
   let src = read_file fname in
   let prog = compile src in
   interp (prog)
+*)
