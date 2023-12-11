@@ -206,7 +206,7 @@ and parse_var () : expr parser =
   pure (Var x)
 
 and parse_fun () : expr parser =
-  let () = print_endline "parse fun" in 
+  (* let () = print_endline "parse fun" in  *)
   let* _ = keyword "fun" in
   let* xs = many1 parse_name in 
   let* _ = keyword "->" in
@@ -226,7 +226,7 @@ and parse_let () : expr parser =
   pure (Let (x, m, n))
 
 and parse_letrec () : expr parser =
-  let () = print_endline "parse letrec" in 
+  (* let () = print_endline "parse letrec" in  *)
   let* _ = keyword "let" in
   let* _ = keyword "rec" in
   let* f = parse_name in
@@ -240,7 +240,7 @@ and parse_letrec () : expr parser =
   pure (Let (f, Fun (f, x, m), n))
 
 and parse_ifte () : expr parser =
-  let () = print_endline "parse ifelse" in 
+  (* let () = print_endline "parse ifelse" in  *)
   let* _ = keyword "if" in
   let* m = parse_expr () in
   let* _ = keyword "then" in
@@ -372,9 +372,10 @@ let rec compute (expr_prog: expr)(string_prog: string): string =
     | Eq -> p ^ "Gt;Not;" ^ p ^ "Lt;Not;And;"  (* equal if not greater than and not less than *))
   | Var string -> "Push " ^ string ^ ";Lookup;" ^ string_prog
   | Fun (f, x, expr) -> 
-    "Push " ^ x ^ ";Bind;Fun " ^ (compute expr "") ^ "Return;End;Push " ^ f ^ ";Bind;Call;" 
+    (* "Fun Push " ^ x ^ ";Bind;" ^ (compute expr "") ^ "Return;End;Push " ^ f ^ ";Bind;"  *)
+    "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compute expr "") ^ "Swap;Return;End;"
   | App (expr1, expr2) ->
-    (compute expr1 "") ^ (compute expr2 "")
+    (compute expr1 "") ^ (compute expr2 "") ^ "Swap;Call;"
   | Let (string, expr1, expr2) -> 
     let v = compute expr1 "" in 
     let coms = compute expr2 "" in 
@@ -384,7 +385,7 @@ let rec compute (expr_prog: expr)(string_prog: string): string =
     let b = compute bexpr "" in 
     let c1 = compute cexpr1 "" in 
     let c2 = compute cexpr2 "" in 
-    b ^ "If " ^ c1 ^ "Else" ^ c2 ^ "End;"
+    b ^ "If " ^ c1 ^ "Else " ^ c2 ^ "End;"
   | Trace expr -> (compute expr "") ^ "Trace;Pop;" ^ string_prog
 
 let compile (s : string) : string = (* YOUR CODE *)
