@@ -334,12 +334,14 @@ let parse_prog (s : string) : expr =
 
 let (^) = string_append;;
 
+(* returns a string representation of an integer *)
 let rec intToString(x: int): string =
   if x < 0 then "-" ^ (intToString (x * -1))
   else if x < 10 then str (char_of_digit x)
   else (intToString (x / 10)) ^ (intToString (x mod 10))
 ;;
 
+(* returns a string representation of a boolean *)
 let boolToString(b: bool): string = 
   if b then "True" else "False"
 ;;
@@ -356,7 +358,7 @@ let rec compiler_helper (expr_prog: expr): string =
   | BOpr (bopr, m, n) -> 
     let i: string = compiler_helper m in 
     let j: string = compiler_helper n in 
-    let p: string = i ^ j ^ "Swap;" in 
+    let p: string = i ^ j ^ "Swap;" in  (* stacks are filo; ensures proper order when applying operators *)
     (match  bopr with 
     | Add -> p ^ "Add;"
     | Sub -> p ^ "Sub;"
@@ -372,13 +374,12 @@ let rec compiler_helper (expr_prog: expr): string =
     | Eq -> p ^ "Gt;Not;" ^ p ^ "Lt;Not;And;"  (* equal if not greater than and not less than *))
   | Var var -> "Push " ^ var ^ ";Lookup;"
   | Fun (f, x, m) -> 
-    (* "Fun Push " ^ x ^ ";Bind;" ^ (compiler_helper expr "") ^ "Return;End;Push " ^ f ^ ";Bind;"  *)
     (match m with 
+    (* return statements at the end of If and Else clause to match example from interp2 *)
     |Ifte (b, c1, c2) -> 
       "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compiler_helper b) ^ 
       "If " ^ (compiler_helper c1) ^ "Swap;Return;Else " ^ (compiler_helper c2)  ^ "Swap;Return;End;End;"
     |_ -> "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compiler_helper m) ^ "Swap;Return;End;")
-    (* "Push " ^ f ^ ";Fun Push " ^ x ^ ";Bind;" ^ (compiler_helper m) ^ "Swap;Return;End;" *)
   | App (m, n) ->
     (compiler_helper m) ^ (compiler_helper n) ^ "Swap;Call;"
   | Let (var, m, n) -> 
